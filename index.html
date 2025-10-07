@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- RESPONSIVE -->
+  <title>Página de Prueba</title>
+
+  <!-- Tailwind desde tu servidor o CDN -->
+  <link href="http://localhost:4000/styles.css" rel="stylesheet">
+</head>
+<body class="font-sans bg-gray-100 text-gray-800">
+
+  <main class="p-6">
+    <h1 class="text-2xl font-bold mb-4">Prueba del Chat</h1>
+    <p class="text-gray-600">
+      Bienvenido 👋 Aquí probamos el chat en vivo, integrado como widget.
+    </p>
+  </main>
+
+  <!-- Configuración del Chat -->
+  <script type="text/javascript">
+    var _miChat = _miChat || {};
+    _miChat.key = 'mi-sala-prueba'; // Clave única para la sala
+  </script>
+
+  <!-- Loader del Chat (inyecta socket + chat.js) -->
+  <script src="http://localhost:4000/loader.js" async></script>
+
+</body>
+</html>
