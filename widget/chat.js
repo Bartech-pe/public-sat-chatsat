@@ -377,11 +377,11 @@ function isBusinessHours() {
   
   // Verificar hora (8:00 AM - 5:00 PM)
   const hours = limaTime.getHours();
-  const isValidHour = hours >= 8 && hours < 24;
+  const isValidHour = hours >= 0 && hours < 24;
   
   // Verificar día (lunes a viernes)
   const dayOfWeek = limaTime.getDay();
-  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5; // 0=Domingo, 6=Sábado
+  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 7; // 0=Domingo, 6=Sábado
   
   // Verificar feriado
   const dateString = limaTime.toISOString().split('T')[0];
