@@ -643,17 +643,17 @@ function showRegistrationForm() {
         </div>
         <div class="space-y-1">
           <label for="doc-number" class="block text-sm font-medium text-gray-700">N° de Documento</label>
-          <input id="doc-number" value="87878787" type="text" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="Ingrese su número de documento">
+          <input id="doc-number" value="" type="text" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="Ingrese su número de documento">
           <p id="doc-number-error" class="text-red-500 text-xs mt-1 hidden">Por favor ingrese un número de documento válido</p>
         </div>
         <div class="space-y-1">
           <label for="names" class="block text-sm font-medium text-gray-700">Nombres Completos</label>
-          <input id="names" value="demo sat" type="text" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="Ingrese sus nombres completos">
+          <input id="names" value="" type="text" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="Ingrese sus nombres completos">
           <p id="names-error" class="text-red-500 text-xs mt-1 hidden">Por favor ingrese sus nombres completos</p>
         </div>
         <div class="space-y-1">
           <label for="email" class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-          <input id="email" value="demosat@gmail.com" type="email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="ejemplo@correo.com">
+          <input id="email" value="" type="email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="ejemplo@correo.com">
           <p id="email-error" class="text-red-500 text-xs mt-1 hidden">Por favor ingrese un correo electrónico válido</p>
         </div>
         <div class="space-y-1">
@@ -662,7 +662,7 @@ function showRegistrationForm() {
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <span class="text-gray-500">+51</span>
             </div>
-            <input id="phone" value="98787877" type="tel" class="w-full p-3 pl-16 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="912 345 678">
+            <input id="phone" value="" type="tel" class="w-full p-3 pl-16 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="912 345 678">
           </div>
           <p id="phone-error" class="text-red-500 text-xs mt-1 hidden">Por favor ingrese un número de celular válido</p>
         </div>
