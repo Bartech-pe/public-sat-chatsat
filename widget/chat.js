@@ -1,5 +1,3 @@
-
-// Configuración pública inyectada por /config.js
 const __ENV = (typeof window !== 'undefined' && window.__ENV) ? window.__ENV : {};
 
 // URLs principales con fallbacks seguros
@@ -10,8 +8,8 @@ const url_apis = (__ENV.API_BASE_URL);
 
 // Endpoints específicos
 let EMAIL_API = url_apis + "email";
-let SURVEY_API = url_apis + "/channel-citizen/create-survey";
-
+//let SURVEY_API = url_apis + "/channel-citizen/create-survey";
+let SURVEY_API = chanet_conector_url + "/create-survey";
 let API_TOKEN = null;
 
 let chatSocket = null;
@@ -81,8 +79,6 @@ function initializeSockets() {
       
   
     socketChanel.on("message.outgoing", (data) => {
-
-        console.log(data);
 
           messageNew.assistanceId = data.assistanceId || null;
           messageNew.channelRoomId = data.channelRoomId || null;
@@ -183,7 +179,7 @@ function initializeSockets() {
                 console.log("👉 Encuesta será enviada por correo");
                  try {
                     // Send survey data to API
-                    const responseAssistance = await fetch(url_apis + '/channel-room/assistances/' + messageNew.assistanceId + '/chatsat/send-to-email' , {
+                    const responseAssistance = await fetch(chanet_conector_url + '/attention/' + messageNew.assistanceId + '/send-to-email' , {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -981,17 +977,29 @@ async function  startChat()  {
 }
 
 // Mostrar mensajes iniciales del chat
-function showInitialMessages() {
-  
-  
-  // Saludo inicial
-  addMessage('Asesor', 'Bienvenido al SAT, ¿en qué podemos ayudarlo?', false,false);
-  
-  // Opciones de autoatención
-  //addMessage('Sistema', 'Opciones rápidas: 1. Consulta de deuda y lugares de pago. 2. Estado de trámite.', false,false);
-  
-  // Cargar historial si existe
-  //loadChatHistory();
+async function showInitialMessages() {
+
+  try {
+
+    const response = await fetch(`${chanet_conector_url}/get-automatic-messages`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json', 'Authorization': API_TOKEN },
+       body: JSON.stringify({}),
+    });
+
+    const messagesAutomatic = await response.json(); 
+
+    if (Array.isArray(messagesAutomatic)) {
+      messagesAutomatic.forEach(msg => addMessage('Asesor', msg, false, false));
+    } else {
+      addMessage('Asesor', messagesAutomatic.toString(), false, false);
+    }
+
+
+  } catch (error) {
+    console.error('Error al obtener mensajes automáticos:', error);
+  }
+
 }
 
 function addMessage(user, msg, isUser, file = false) {
@@ -1284,105 +1292,92 @@ function resetInactivityTimer() {
 // Finalizar sesión
 function endChatSession() {}
 
-// Encuesta de satisfacción
 function showSatisfactionSurvey() {
-  // Hide the chat input container
-  document.getElementById('chat-input-container').classList.add('hidden');
 
-  // Get the chat content container
+  document.getElementById('chat-input-container').classList.add('hidden');
   const content = document.getElementById('chat-content');
 
-  // Render the satisfaction survey form with radio buttons
   content.innerHTML = `
     <div class="p-6 bg-white rounded-xl shadow-lg max-w-md mx-auto">
-        <h3 class="text-xl font-bold mb-4 text-gray-800">Encuesta de Satisfacción</h3>
-        <p class="text-sm text-gray-500 mb-6">Por favor, califique el servicio de 0 a 10:</p>
-        <div class="grid grid-cols-6 gap-2 mb-6 sm:grid-cols-11 sm:gap-1">
-          ${Array.from({ length: 11 }, (_, i) => `
-            <label class="flex flex-col items-center space-y-1 cursor-pointer group">
-              <input 
-                type="radio" 
-                name="rating" 
-                value="${i}" 
-                class="sr-only peer"
-              >
-              <span class="flex h-10 w-10 items-center justify-center rounded-full border-2 border-gray-300 bg-gray-100 text-gray-600 text-sm font-medium group-hover:bg-gray-200 peer-checked:bg-green-600 peer-checked:text-white peer-checked:border-green-600 peer-focus:ring-2 peer-focus:ring-green-500 peer-focus:ring-offset-2 transition-all duration-200">
-                ${i}
-              </span>
-            </label>
-          `).join('')}
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Encuesta de Satisfacción</h3>
+      <p class="text-sm text-gray-500 mb-6">¿Qué tan satisfecho estás con la atención y trato del asesor?</p>
+
+      <div class="flex flex-col sm:flex-row gap-3 mb-6">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="rating" value="1" class="accent-green-600 h-4 w-4">
+          <span class="text-gray-700 font-medium">Satisfecho</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="rating" value="0" class="accent-red-600 h-4 w-4">
+          <span class="text-gray-700 font-medium">No satisfecho</span>
+        </label>
+      </div>
+
+      <div id="motivo-container" class="hidden mb-6 animate-fadeIn">
+        <p class="text-sm text-gray-700 mb-2 font-medium">Por favor, señale el motivo:</p>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="motivo" value="No solucionó mi problema" class="accent-red-600 h-4 w-4">
+            <span class="text-gray-600">No solucionó mi problema</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="motivo" value="Información errónea" class="accent-red-600 h-4 w-4">
+            <span class="text-gray-600">Información errónea</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="motivo" value="No recibí un trato amable" class="accent-red-600 h-4 w-4">
+            <span class="text-gray-600">No recibí un trato amable</span>
+          </label>
         </div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Comentario (opcional)</label>
-        <textarea 
-          id="comment" 
-          class="w-full p-3 border border-gray-200 rounded-lg mb-4 resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-gray-50 text-gray-700 placeholder-gray-400" 
-          rows="4" 
-          placeholder="Deje su comentario aquí..."
-        ></textarea>
-        <button 
-          id="submit-survey" 
-          class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200 font-medium"
-        >
-          Enviar Encuesta
-        </button>
+      </div>
+
+      <button id="submit-survey" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium">
+        Enviar Encuesta
+      </button>
     </div>
   `;
 
-  // Add event listener for survey submission
+  document.querySelectorAll('input[name="rating"]').forEach(radio => {
+    radio.addEventListener('change', e => {
+      document.getElementById('motivo-container').classList.toggle('hidden', e.target.value !== "0");
+    });
+  });
+
   document.getElementById('submit-survey').addEventListener('click', async () => {
     const selectedRating = document.querySelector('input[name="rating"]:checked');
-    let comment = document.getElementById('comment').value;
+    const selectedMotivo = document.querySelector('input[name="motivo"]:checked');
 
-    // Validate rating
-    if (!selectedRating) {
-      alert('Por favor, seleccione una puntuación de 0 a 10.');
-      return;
-    }
+    if (!selectedRating) return alert('Por favor, seleccione una opción.');
+    if (selectedRating.value === "0" && !selectedMotivo)
+      return alert('Por favor, seleccione el motivo.');
 
-    // Sanitize comment to prevent XSS
-    comment = comment.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    // Prepare survey data
     const requestEncuesta = {
       assistanceId: messageNew.assistanceId,
       channelRoomId: messageNew.channelRoomId,
       citizenId: messageNew.citizenId,
       userId: messageNew.userId,
-      rating: parseInt(selectedRating.value, 10), // Convert to number
-      comment: comment || '' // Ensure comment is a string
+      rating: parseInt(selectedRating.value, 10),
+      comment: selectedMotivo ? selectedMotivo.value : ''
     };
 
     console.log('Encuesta enviada:', requestEncuesta);
-
     try {
-      // Send survey data to API
       const response = await fetch(SURVEY_API, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': API_TOKEN,
-        },
-        body:  JSON.stringify(requestEncuesta),
+        headers: { 'Content-Type': 'application/json', 'Authorization': API_TOKEN },
+        body: JSON.stringify(requestEncuesta),
       });
+      if (!response.ok) throw new Error(`API request failed: ${response.status}`);
 
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      // Show enhanced thank-you message
       content.innerHTML = `
-        <div class="p-4 text-center animate-fade-in">
-          <div class="flex justify-center mb-4">
-            <svg class="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
+        <div class="p-4 text-center">
+          <svg class="w-12 h-12 text-green-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
           <h3 class="text-lg font-semibold text-gray-800 mb-2">¡Gracias por tu feedback!</h3>
-          <p class="text-sm text-gray-600">Tu opinión nos ayuda a mejorar nuestro servicio. ¡Apreciamos tu tiempo!</p>
+          <p class="text-sm text-gray-600">Gracias por tu respuesta, nos servirá para mejorar nuestra atención.🤖 Recuerda que si tienes una consulta puedes escribirme las 24 horas del día..</p>
         </div>
       `;
-
-      // Close the chat and show registration form after 5 seconds
       setTimeout(() => {
         const widget = document.getElementById('mi-chat-widget');
         const openBtn = document.getElementById('chat-open-btn');
@@ -1394,11 +1389,13 @@ function showSatisfactionSurvey() {
         showRegistrationForm();
       }, 5000);
     } catch (error) {
-      console.error('Error sending survey:', error);
-      alert('Hubo un error al enviar la encuesta. Por favor, intenta de nuevo.');
+      alert('Hubo un error al enviar la encuesta. Intente de nuevo.');
     }
   });
 }
+
+
+
 
 // Exposición global
 window.miChat = { init: createChatWidget };
