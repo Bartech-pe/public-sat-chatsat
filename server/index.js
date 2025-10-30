@@ -66,99 +66,92 @@ chatIo.on('connection', (socket) => {
 
   // Manejar mensajes de chat
   socket.on('chatMessage', async (data) => {
-  
-    // Transformar al formato INCOMING
-    let transformed = {
-      type: 'message.incoming',
-      payload: {
-        chat_id: uuidv4(), 
-        channel: 'chatsat',
-        fromMe: false,
-        token: tokenStore.get(socket.id) || 'TOKEN_GENERADO_O_RECIBIDO', // Usar el token almacenado
-        message: {
-          id: Date.now().toString(),
-          body: data.msg || ''
-        },
-        receiver: {
-          id: null,
-          full_name: '',
-          phone_number: '',
-          alias: ''
-        },
-        sender: {
-          id: data.user.id,
-          full_name: data.user.name,
-          phone_number: data.user.phoneNumber,
-          alias: data.user.name.toLowerCase().replace(/\s+/g, '_')
-        },
-        timestamp: data.timestamp,
-        attachments: []
-      }
-    };
+      // Transformar al formato INCOMING
 
-    if (data.file) {
-      transformed.payload.attachments.push({
-        name: data.file?.name || '',
-        extension: data.file?.extension || '',
-        content: data.file?.content || ''
-      });
-    }
-
- 
-    // Obtener el token del store
-    const accessToken = data.user.accessToken;
-
-    try {
-      const responseMessage = await axios.post(`${process.env.CHANEL_URL}/send-message`, transformed, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': accessToken ? `Bearer ${accessToken}` : undefined // Añadir el token a los headers
+      console.log(data);
+      
+      let transformed = {
+        type: 'message.incoming',
+        payload: {
+          chat_id: uuidv4(), 
+          channel: 'chatsat',
+          fromMe: false,
+          token: 'cw330b6io69n8xbge5ynn8ox8831ikc2s0p7', 
+          message: {
+            id: Date.now().toString(),
+            body: data.msg || ''
+          },
+          receiver: {
+            id: null,
+            full_name: '',
+            phone_number: '',
+            alias: ''
+          },
+          sender: {
+            id: data.user.id,
+            full_name: data.user.name,
+            phone_number: data.user.phoneNumber,
+            alias: data.user.name.toLowerCase().replace(/\s+/g, '_')
+          },
+          timestamp: data.timestamp,
+          attachments: []
         }
-      });
+      };
 
- 
-      socket.emit('responseMessageChanel', responseMessage.data);
+      if (data.file) {
+        transformed.payload.attachments.push({
+          name: data.file?.name || '',
+          extension: data.file?.extension || '',
+          content: data.file?.content || ''
+        });
+      }
 
-      // Sincronizar sala si hay channelRoomId
+      const accessToken = data.user.accessToken;
+
       try {
-        const { channelRoomId } = responseMessage.data || {};
-        if (channelRoomId) {
-          const canonicalRoom = String(channelRoomId);
-          socket.join(canonicalRoom);
-          socket.emit('roomAssigned', { room: canonicalRoom });
-
-          // Limpiar otras salas
-          try {
-            const rooms = socket.rooms || new Set();
-            for (const r of rooms) {
-              if (r !== canonicalRoom && r !== socket.id) {
-                socket.leave(r);
-              }
-            }
-          } catch (e) {
-            console.warn('No se pudieron limpiar salas previas:', e?.message || e);
+        const responseMessage = await axios.post(`${process.env.CHANEL_URL}/send-message`, transformed, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined // Añadir el token a los headers
           }
+        });
+
+        socket.emit('responseMessageChanel', responseMessage.data);
+
+        try {
+          const { channelRoomId } = responseMessage.data || {};
+          if (channelRoomId) {
+            const canonicalRoom = String(channelRoomId);
+            socket.join(canonicalRoom);
+            socket.emit('roomAssigned', { room: canonicalRoom });
+
+            // Limpiar otras salas
+            try {
+              const rooms = socket.rooms || new Set();
+              for (const r of rooms) {
+                if (r !== canonicalRoom && r !== socket.id) {
+                  socket.leave(r);
+                }
+              }
+            } catch (e) {
+              console.warn('No se pudieron limpiar salas previas:', e?.message || e);
+            }
+          }
+        } catch (e) {
+          console.warn('No se pudo sincronizar la sala canónica:', e?.message || e);
         }
-      } catch (e) {
-        console.warn('No se pudo sincronizar la sala canónica:', e?.message || e);
+      } catch (error) {
+        console.error('Error al enviar mensaje:', error.message);
       }
-    } catch (error) {
-      console.error('Error al enviar mensaje:', error.message);
-    }
   });
 
-  // Manejar desconexión
   socket.on('disconnect', () => {
-    console.log('Cliente desconectado del chat:', socket.id);
-    // Opcional: Eliminar el token al desconectar
     tokenStore.delete(socket.id);
   });
 
-  // Registro de usuario
   socket.on('registerUser', async (data, callback) => {
  
     if (typeof callback !== 'function') {
-      console.error('No se proporcionó una función de callback para la respuesta');
       return;
     }
 
@@ -174,7 +167,7 @@ chatIo.on('connection', (socket) => {
         return callback({ success: false, message: `Faltan campos: ${missingFields.join(', ')}` });
       }
 
-      const responseData = await axios.post(`${process.env.API_URL}/channel-citizen`, {
+      const responseData = await axios.post(`${process.env.CHANEL_URL}/create-citizen`, {
         name: data.names || "",
         phoneNumber: data.phone || "",
         isExternal: true,
