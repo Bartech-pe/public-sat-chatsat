@@ -957,7 +957,7 @@ async function  startChat()  {
     sendButton.disabled = false;
     
     // Mostrar mensaje de bienvenida
-    addMessage('Sistema', `Conectando con al chatsat...`, false,false);
+    // addMessage('Sistema', `Conectando con al chatsat...`, false,false);
     
     // Configurar eventos del chat
     setupChatEvents();
@@ -1004,6 +1004,8 @@ async function showInitialMessages() {
 
 function addMessage(user, msg, isUser, file = false) {
 
+  console.log(msg);
+
   const content = document.getElementById('chat-content');
   if (!content) return; // Evitar errores si no existe el contenedor
 
@@ -1016,13 +1018,36 @@ function addMessage(user, msg, isUser, file = false) {
   }`;
 
   // Procesar mensaje como markdown + sanitizar
-  const htmlMsg = marked.parse(msg || '',{ breaks: true });
+  const htmlMsg = marked.parse(msg || '', {  
+    breaks: true,
+    gfm: true,
+    mangle: false,
+    headerIds: false,
+    sanitize: false, 
+  });
+  
   const sanitizedHtml = DOMPurify.sanitize(htmlMsg);
+
   if (sanitizedHtml) {
-    const p = document.createElement('p');
-    p.className = 'text-sm leading-relaxed break-words';
-    p.innerHTML = sanitizedHtml;
-    innerDiv.appendChild(p);
+    const wrapper = document.createElement('div');
+    wrapper.className =
+      'text-sm leading-relaxed whitespace-pre-wrap break-words overflow-hidden overflow-wrap-anywhere';
+    wrapper.innerHTML = sanitizedHtml;
+
+    // 🔗 Detectar y ajustar enlaces externos
+    const links = wrapper.querySelectorAll('a[href^="http"]');
+    links.forEach(link => {
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+      link.classList.add(
+        'text-blue-600',
+        'underline',
+        'hover:text-blue-800',
+        'break-all'
+      );
+    });
+
+    innerDiv.appendChild(wrapper);
   }
 
   // Manejar archivo adjunto
@@ -1300,7 +1325,7 @@ function showSatisfactionSurvey() {
   content.innerHTML = `
     <div class="p-6 bg-white rounded-xl shadow-lg max-w-md mx-auto">
       <h3 class="text-xl font-bold mb-4 text-gray-800">Encuesta de Satisfacción</h3>
-      <p class="text-sm text-gray-500 mb-6">¿Qué tan satisfecho estás con la atención y trato del asesor?</p>
+      <p class="text-sm text-gray-500 mb-6">¿Qué tan satisfecho  te encuentras con el servicio?</p>
 
       <div class="flex flex-col sm:flex-row gap-3 mb-6">
         <label class="flex items-center gap-2 cursor-pointer">
