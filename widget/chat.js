@@ -36,7 +36,8 @@ let inactivityTimer;
 let chatHistory = localStorage.getItem('chatHistory') ? JSON.parse(localStorage.getItem('chatHistory')) : [];
 let isTyping = false;
 let userCiudadano = null;
-
+let isBoot = false;
+let socketChanel;
 // Inicializar conexiones de socket
 function initializeSockets() {
   return new Promise((resolve, reject) => {
@@ -56,7 +57,7 @@ function initializeSockets() {
         secondarySocket.disconnect();
       }
 
-      const socketChanel = window.io(chanet_conector_url, {
+      socketChanel = window.io(chanet_conector_url, {
         auth: {
           token: API_TOKEN
         },
@@ -78,8 +79,12 @@ function initializeSockets() {
       });
       
   
-    socketChanel.on("message.outgoing", (data) => {
+      socketChanel.on("message.outgoing", (data) => {
 
+      //  console.log(data)
+     
+          isBoot= data.botReply
+    
           messageNew.assistanceId = data.assistanceId || null;
           messageNew.channelRoomId = data.channelRoomId || null;
           messageNew.userId = data.userId || null;
@@ -163,7 +168,7 @@ function initializeSockets() {
           console.log("chat.completed",completed)
           if(userCiudadano.id ==  messageNew.citizenId){
             
-            addMessage("Asesor", "El chat ha finalizado por inactividad.\n Gracias por comunicarte con nosotros.\n Antes de salir, te invitamos a responder una breve encuesta para mejorar nuestro servicio", false, false);
+            addMessage("Asesor", "El chat ha finalizado.\n Gracias por comunicarte con nosotros.\n Antes de salir, te invitamos a responder una breve encuesta para mejorar nuestro servicio", false, false);
             addMessage("Asesor", "¿Quieres que te enviemos esta conversación a tu correo?", false, false);
      
             const content_chat = document.getElementById("chat-content");
@@ -779,8 +784,7 @@ function showRegistrationForm() {
               userCiudadano = response.citizen;
 
               API_TOKEN =   `Bearer ${response.citizen.accessToken}` ;
-              console.log("obtener datos ciudadano", API_TOKEN );
-
+            
               initializeSockets();
 
               showConfirmationCard();
@@ -991,6 +995,7 @@ async function showInitialMessages() {
 
     if (Array.isArray(messagesAutomatic)) {
       messagesAutomatic.forEach(msg => addMessage('Asesor', msg, false, false));
+      socketChanel.emit("chat.init");
     } else {
       addMessage('Asesor', messagesAutomatic.toString(), false, false);
     }
@@ -1003,8 +1008,6 @@ async function showInitialMessages() {
 }
 
 function addMessage(user, msg, isUser, file = false) {
-
-  console.log(msg);
 
   const content = document.getElementById('chat-content');
   if (!content) return; // Evitar errores si no existe el contenedor
@@ -1325,7 +1328,11 @@ function showSatisfactionSurvey() {
   content.innerHTML = `
     <div class="p-6 bg-white rounded-xl shadow-lg max-w-md mx-auto">
       <h3 class="text-xl font-bold mb-4 text-gray-800">Encuesta de Satisfacción</h3>
-      <p class="text-sm text-gray-500 mb-6">¿Qué tan satisfecho  te encuentras con el servicio?</p>
+      <p class="text-sm text-gray-500 mb-6">
+       ${isBoot === false
+        ? '¿Qué tan satisfecho estás con la atención y trato del asesor?'
+        : '¿Qué tan satisfecho estás con el servicio?'}
+      </p>
 
       <div class="flex flex-col sm:flex-row gap-3 mb-6">
         <label class="flex items-center gap-2 cursor-pointer">
