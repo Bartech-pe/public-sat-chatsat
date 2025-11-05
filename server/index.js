@@ -52,175 +52,171 @@ const secondIo = new Server(secondServer, {
 
 // Configurar eventos para el socket de chat (puerto 4000)
 chatIo.on('connection', (socket) => {
-  socket.on('joinRoom', (room) => {
-    socket.join(room);
-  });
+      socket.on('joinRoom', (room) => {
+        socket.join(room);
+      });
 
-  socket.on('leaveRoom', (room) => {
-    try {
-      if (room) socket.leave(String(room));
-    } catch (e) {
-      console.warn('Error al abandonar sala:', e?.message || e);
-    }
-  });
-
-  // Manejar mensajes de chat
-  socket.on('chatMessage', async (data) => {
-      // Transformar al formato INCOMING
-
-      console.log(data);
-      
-      let transformed = {
-        type: 'message.incoming',
-        payload: {
-          chat_id: uuidv4(), 
-          channel: 'chatsat',
-          fromMe: false,
-          token: 'cw330b6io69n8xbge5ynn8ox8831ikc2s0p7', 
-          message: {
-            id: Date.now().toString(),
-            body: data.msg || ''
-          },
-          receiver: {
-            id: null,
-            full_name: '',
-            phone_number: '',
-            alias: ''
-          },
-          sender: {
-            id: data.user.id,
-            full_name: data.user.name,
-            phone_number: data.user.phoneNumber,
-            alias: data.user.name.toLowerCase().replace(/\s+/g, '_')
-          },
-          timestamp: data.timestamp,
-          attachments: []
-        }
-      };
-
-      if (data.file) {
-        transformed.payload.attachments.push({
-          name: data.file?.name || '',
-          extension: data.file?.extension || '',
-          content: data.file?.content || ''
-        });
-      }
-
-      const accessToken = data.user.accessToken;
-
-      try {
-        const responseMessage = await axios.post(`${process.env.CHANEL_URL}/send-message`, transformed, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': accessToken ? `Bearer ${accessToken}` : undefined // Añadir el token a los headers
-          }
-        });
-
-        socket.emit('responseMessageChanel', responseMessage.data);
-
+      socket.on('leaveRoom', (room) => {
         try {
-          const { channelRoomId } = responseMessage.data || {};
-          if (channelRoomId) {
-            const canonicalRoom = String(channelRoomId);
-            socket.join(canonicalRoom);
-            socket.emit('roomAssigned', { room: canonicalRoom });
+          if (room) socket.leave(String(room));
+        } catch (e) {
+          console.warn('Error al abandonar sala:', e?.message || e);
+        }
+      });
 
-            // Limpiar otras salas
+      socket.on('chatMessage', async (data) => {
+
+          let transformed = {
+            type: 'message.incoming',
+            payload: {
+              chat_id: uuidv4(), 
+              channel: 'chatsat',
+              fromMe: false,
+              token: 'cw330b6io69n8xbge5ynn8ox8831ikc2s0p7', 
+              message: {
+                id: Date.now().toString(),
+                body: data.msg || ''
+              },
+              receiver: {
+                id: null,
+                full_name: '',
+                phone_number: '',
+                alias: ''
+              },
+              sender: {
+                id: data.user.id,
+                full_name: data.user.name,
+                phone_number: data.user.phoneNumber,
+                alias: data.user.name.toLowerCase().replace(/\s+/g, '_')
+              },
+              timestamp: data.timestamp,
+              attachments: []
+            }
+          };
+
+          if (data.file) {
+            transformed.payload.attachments.push({
+              name: data.file?.name || '',
+              extension: data.file?.extension || '',
+              content: data.file?.content || ''
+            });
+          }
+
+          const accessToken = data.user.accessToken;
+
+          try {
+            const responseMessage = await axios.post(`${process.env.CHANEL_URL}/send-message`, transformed, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': accessToken ? `Bearer ${accessToken}` : undefined // Añadir el token a los headers
+              }
+            });
+
+            socket.emit('responseMessageChanel', responseMessage.data);
+
             try {
-              const rooms = socket.rooms || new Set();
-              for (const r of rooms) {
-                if (r !== canonicalRoom && r !== socket.id) {
-                  socket.leave(r);
+              const { channelRoomId } = responseMessage.data || {};
+              if (channelRoomId) {
+                const canonicalRoom = String(channelRoomId);
+                socket.join(canonicalRoom);
+                socket.emit('roomAssigned', { room: canonicalRoom });
+
+                // Limpiar otras salas
+                try {
+                  const rooms = socket.rooms || new Set();
+                  for (const r of rooms) {
+                    if (r !== canonicalRoom && r !== socket.id) {
+                      socket.leave(r);
+                    }
+                  }
+                } catch (e) {
+                  console.warn('No se pudieron limpiar salas previas:', e?.message || e);
                 }
               }
             } catch (e) {
-              console.warn('No se pudieron limpiar salas previas:', e?.message || e);
+              console.warn('No se pudo sincronizar la sala canónica:', e?.message || e);
             }
+          } catch (error) {
+            console.error('Error al enviar mensaje:', error.message);
           }
-        } catch (e) {
-          console.warn('No se pudo sincronizar la sala canónica:', e?.message || e);
+      });
+
+      socket.on('disconnect', () => {
+        tokenStore.delete(socket.id);
+      });
+
+      socket.on('registerUser', async (data, callback) => {
+    
+        if (typeof callback !== 'function') {
+          return;
         }
-      } catch (error) {
-        console.error('Error al enviar mensaje:', error.message);
-      }
-  });
 
-  socket.on('disconnect', () => {
-    tokenStore.delete(socket.id);
-  });
+        try {
+          if (!data) {
+            return callback({ success: false, message: 'No se recibieron datos de registro' });
+          }
 
-  socket.on('registerUser', async (data, callback) => {
- 
-    if (typeof callback !== 'function') {
-      return;
-    }
+          const requiredFields = ['names', 'phone'];
+          const missingFields = requiredFields.filter(field => !data[field]);
 
-    try {
-      if (!data) {
-        return callback({ success: false, message: 'No se recibieron datos de registro' });
-      }
+          if (missingFields.length > 0) {
+            return callback({ success: false, message: `Faltan campos: ${missingFields.join(', ')}` });
+          }
 
-      const requiredFields = ['names', 'phone'];
-      const missingFields = requiredFields.filter(field => !data[field]);
+          const responseData = await axios.post(`${process.env.CHANEL_URL}/create-citizen`, {
+            name: data.names || "",
+            phoneNumber: data.phone || "",
+            isExternal: true,
+            email: data.email || "",
+            documentNumber: data.docNumber || "",
+            documentType: data.docType || "",
+            avatarUrl: ""
+          }, {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
 
-      if (missingFields.length > 0) {
-        return callback({ success: false, message: `Faltan campos: ${missingFields.join(', ')}` });
-      }
+          // Almacenar el token en el mapa usando el socket.id como clave
+          tokenStore.set(socket.id, responseData.data.accessToken);
 
-      const responseData = await axios.post(`${process.env.CHANEL_URL}/create-citizen`, {
-        name: data.names || "",
-        phoneNumber: data.phone || "",
-        isExternal: true,
-        email: data.email || "",
-        documentNumber: data.docNumber || "",
-        documentType: data.docType || "",
-        avatarUrl: ""
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
+          callback({ 
+            success: true, 
+            message: 'Usuario registrado exitosamente',
+            citizen: responseData.data
+          });
+
+        } catch (err) {
+      
+          const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
+          callback({
+            success: false,
+            message: errorMessage,
+            citizen: null,
+            error: errorMessage
+          });
         }
       });
 
-      // Almacenar el token en el mapa usando el socket.id como clave
-      tokenStore.set(socket.id, responseData.data.accessToken);
-
-      callback({ 
-        success: true, 
-        message: 'Usuario registrado exitosamente',
-        citizen: responseData.data
+      socket.on('typing', (data) => {
+        console.log('Usuario escribiendo:', data.user);
       });
-
-    } catch (err) {
-   
-      const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
-      callback({
-        success: false,
-        message: errorMessage,
-        citizen: null,
-        error: errorMessage
-      });
-    }
-  });
-
-  socket.on('typing', (data) => {
-    console.log('Usuario escribiendo:', data.user);
-  });
 });
 
 server.listen(CHAT_PORT, () => {
-  console.log(`Servidor de chat corriendo en http://localhost:${CHAT_PORT}`);
+    console.log(`Servidor de chat corriendo en http://localhost:${CHAT_PORT}`);
 });
 
 secondServer.listen(SECONDARY_PORT, () => {
-  console.log(`Servidor secundario corriendo en http://localhost:${SECONDARY_PORT}`);
+    console.log(`Servidor secundario corriendo en http://localhost:${SECONDARY_PORT}`);
 
-  secondIo.on('connection', (socket) => {
-    socket.on('customEvent', (data) => {
-      socket.emit('customResponse', { status: 'received', data });
-    });
+    secondIo.on('connection', (socket) => {
+      socket.on('customEvent', (data) => {
+        socket.emit('customResponse', { status: 'received', data });
+      });
 
-    socket.on('disconnect', () => {
-      console.log('Usuario desconectado del socket secundario:', socket.id);
+      socket.on('disconnect', () => {
+        console.log('Usuario desconectado del socket secundario:', socket.id);
+      });
     });
-  });
 });
