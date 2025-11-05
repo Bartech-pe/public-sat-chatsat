@@ -53,182 +53,13 @@ function initializeSockets() {
       if (chatSocket) {
         chatSocket.disconnect();
       }
+
+
       if (secondarySocket) {
         secondarySocket.disconnect();
       }
 
-      socketChanel = window.io(chanet_conector_url, {
-        auth: {
-          token: API_TOKEN
-        },
-        transports: ["websocket",'polling'],
-      });
-       console.log("Conectado con id:", socketChanel.id);
-      // Eventos del canal ngrok
-      socketChanel.on("connect", () => {
-        console.log("Conectado con id:", socketChanel.id);
-     
-      });
-      
-      socketChanel.on("disconnect", () => {
-        console.log("Desconectado del ngrok");
-      });
-      
-      socketChanel.on("connect_error", (err) => {
-        console.error("Error de conexión:", err.message);
-      });
-      
-  
-      socketChanel.on("message.outgoing", (data) => {
-
-      //  console.log(data)
-     
-          isBoot= data.botReply
     
-          messageNew.assistanceId = data.assistanceId || null;
-          messageNew.channelRoomId = data.channelRoomId || null;
-          messageNew.userId = data.userId || null;
-          messageNew.citizenId = data.citizenId || null;
-
-          if(userCiudadano.id ==  messageNew.citizenId){
-
-            if (typingIndicatorElement) {
-              typingIndicatorElement.remove();
-              typingIndicatorElement = null;
-            }
-  
-            if (typingIndicatorTimer) {
-              clearTimeout(typingIndicatorTimer);
-              typingIndicatorTimer = null;
-            }
-  
-            if (Array.isArray(data.attachments) && data.attachments.length > 0) {
-                const attachment = data.attachments[0];
-  
-                const fileData = {
-                  name: `archivo_${attachment.id}.${attachment.extension}`,
-                  type: attachment.type,
-                  extension: attachment.extension,
-                  size: attachment.size,
-                  content: attachment.content,
-                };
-  
-                addMessage("Asesor", data.message, false, fileData);
-            } else {
-                addMessage("Asesor", data.message, false, false);
-            }
-          }
-
-         
-      });
-
-      socketChanel.on("chat.status.typing.indicator", (indicator) => {
-          console.log("chat.status",indicator)
-
-          if(userCiudadano.id ==  messageNew.citizenId){
-
-            const content = document.getElementById('chat-content');
-            
-              if (!content) {
-                return;
-              }
-  
-              // Limpiar el indicador anterior si existe
-              if (typingIndicatorElement) {
-                typingIndicatorElement.remove();
-                typingIndicatorElement = null;
-              }
-              if (typingIndicatorTimer) {
-                clearTimeout(typingIndicatorTimer);
-              }
-
-              // Crear el elemento de "Escribiendo..."
-              typingIndicatorElement = document.createElement('div');
-              typingIndicatorElement.className = 'mb-2 flex justify-start animate-fadeIn';
-              typingIndicatorElement.innerHTML = `
-                <div class="relative min-w-[80px] max-w-[80%] px-3 py-2 rounded-2xl bg-gray-200 text-gray-600 text-sm">
-                  <span>Escribiendo<span class="animate-pulse">...</span></span>
-                </div>
-              `;
-              content.appendChild(typingIndicatorElement);
-              content.scrollTop = content.scrollHeight;
-
-              // Configurar temporizador para eliminar el indicador después de 3 minutos
-            typingIndicatorTimer = setTimeout(() => {
-                if (typingIndicatorElement) {
-                  typingIndicatorElement.remove();
-                  typingIndicatorElement = null;
-                }
-                typingIndicatorTimer = null;
-              },  10 * 1000);
-            }
-      });
-
-      socketChanel.on("chat.status.completed", (completed) => {
-          console.log("chat.completed",completed)
-          if(userCiudadano.id ==  messageNew.citizenId){
-            
-            addMessage("Asesor", "El chat ha finalizado.\n Gracias por comunicarte con nosotros.\n Antes de salir, te invitamos a responder una breve encuesta para mejorar nuestro servicio", false, false);
-            addMessage("Asesor", "¿Quieres que te enviemos esta conversación a tu correo?", false, false);
-     
-            const content_chat = document.getElementById("chat-content");
-            if (content_chat) {
-              const optionsDiv_chat = document.createElement("div");
-              optionsDiv_chat.className = "mt-3 flex gap-3";
-
-              const yesBtn = document.createElement("button");
-              yesBtn.textContent = "✅ Sí, enviar";
-              yesBtn.className =
-                "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition";
-              yesBtn.onclick = async() => {
-                console.log("👉 Encuesta será enviada por correo");
-                 try {
-                    // Send survey data to API
-                    const responseAssistance = await fetch(chanet_conector_url + '/attention/' + messageNew.assistanceId + '/send-to-email' , {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': API_TOKEN,
-                      },
-                      body:  JSON.stringify({}),
-                    });
-
-               
-                    if (userCiudadano && userCiudadano.email) {
-                      addMessage("Asesor", "Acabamos de enviar el chat a su correo " + userData.email, false, false);
-                    } else {
-                      addMessage("Asesor", "Acabamos de enviar el chat a su correo registrado.", false, false);
-                    }
-
-                  } catch (error) {
-                    console.log('Error sending survey:', error);
-                  }
-
-                  optionsDiv_chat.remove();
-              };
-
-              const noBtn = document.createElement("button");
-              noBtn.textContent = "❌ No, gracias";
-              noBtn.className =
-                "px-4 py-2 bg-gray-300 text-gray-900 rounded-lg hover:bg-gray-400 transition";
-              noBtn.onclick = () => {
-               
-                optionsDiv_chat.remove();
-              };
-
-              optionsDiv_chat.appendChild(yesBtn);
-              optionsDiv_chat.appendChild(noBtn);
-              content_chat.appendChild(optionsDiv_chat);
-            }
-            
-            setTimeout(() => {
-                showSatisfactionSurvey();
-            }, 10000);
-          }
- 
-      });
-
-      
       // Socket principal para el chat (puerto 4000)
       chatSocket = window.io(socket_principal, {
         path: '/socket.io/chat',
@@ -238,6 +69,27 @@ function initializeSockets() {
         timeout: 10000, // 10 segundos de timeout
         forceNew: true, // Forzar nueva conexión
         transports: ['websocket', 'polling'] // Intentar ambos métodos de transporte
+      });
+
+      chatSocket.on('responseMessageChanel', (data) => {
+        console.log(data);
+        if(data){
+
+          if(!messageNew.assistanceId){
+            messageNew.assistanceId = data.assistanceId || null;
+            messageNew.channelRoomId = data.channelRoomId || null;
+            messageNew.userId = data.userId || null;
+            messageNew.citizenId = data.citizenId || null;
+            console.log(data.assistanceId);
+              initializeSocketsChanel(data.assistanceId);
+
+          
+          }
+
+          
+        }
+
+      
       });
 
       // Manejar conexión del socket principal
@@ -311,6 +163,179 @@ function initializeSockets() {
   });
 }
 
+
+function initializeSocketsChanel(assistanceId){
+  
+
+      socketChanel = window.io(chanet_conector_url, {
+        auth: {
+          token: API_TOKEN
+        },
+        transports: ["websocket",'polling'],
+      });
+
+       console.log("Conectado con id:", socketChanel.id);
+      // Eventos del canal ngrok
+      socketChanel.on("connect", () => {
+        console.log("Conectado con id:", socketChanel.id);
+  
+        socketChanel.emit("joinRoom",  {assistanceId} );
+      });
+      
+      socketChanel.on("disconnect", () => {
+        console.log("Desconectado del ngrok");
+      });
+      
+      socketChanel.on("connect_error", (err) => {
+        console.error("Error de conexión:", err.message);
+      });
+
+      
+      socketChanel.on("room", (data) => {
+        console.log(data);
+        
+      })
+      socketChanel.emit("chat.init");
+      socketChanel.on("message.outgoing", (data) => {
+
+            isBoot= data.botReply
+    
+            if (typingIndicatorElement) {
+              typingIndicatorElement.remove();
+              typingIndicatorElement = null;
+            }
+  
+            if (typingIndicatorTimer) {
+              clearTimeout(typingIndicatorTimer);
+              typingIndicatorTimer = null;
+            }
+  
+            if (Array.isArray(data.attachments) && data.attachments.length > 0) {
+                const attachment = data.attachments[0];
+  
+                const fileData = {
+                  name: `archivo_${attachment.id}.${attachment.extension}`,
+                  type: attachment.type,
+                  extension: attachment.extension,
+                  size: attachment.size,
+                  content: attachment.content,
+                };
+  
+                addMessage("Asesor", data.message, false, fileData);
+            } else {
+                addMessage("Asesor", data.message, false, false);
+            }
+      });
+
+      socketChanel.on("chat.status.typing.indicator", (indicator) => {
+          console.log("chat.status",indicator)
+
+            const content = document.getElementById('chat-content');
+            
+              if (!content) {
+                return;
+              }
+  
+              // Limpiar el indicador anterior si existe
+              if (typingIndicatorElement) {
+                typingIndicatorElement.remove();
+                typingIndicatorElement = null;
+              }
+              if (typingIndicatorTimer) {
+                clearTimeout(typingIndicatorTimer);
+              }
+
+              // Crear el elemento de "Escribiendo..."
+              typingIndicatorElement = document.createElement('div');
+              typingIndicatorElement.className = 'mb-2 flex justify-start animate-fadeIn';
+              typingIndicatorElement.innerHTML = `
+                <div class="relative min-w-[80px] max-w-[80%] px-3 py-2 rounded-2xl bg-gray-200 text-gray-600 text-sm">
+                  <span>Escribiendo<span class="animate-pulse">...</span></span>
+                </div>
+              `;
+              content.appendChild(typingIndicatorElement);
+              content.scrollTop = content.scrollHeight;
+
+              // Configurar temporizador para eliminar el indicador después de 3 minutos
+            typingIndicatorTimer = setTimeout(() => {
+                if (typingIndicatorElement) {
+                  typingIndicatorElement.remove();
+                  typingIndicatorElement = null;
+                }
+                typingIndicatorTimer = null;
+              },  10 * 1000);
+            
+      });
+
+      socketChanel.on("chat.status.completed", (completed) => {
+          console.log("chat finalizado",completed)
+          console.log("chat",messageNew)
+          console.log("chat citizenId",messageNew.citizenId)
+          console.log("chat userCiudadano",userCiudadano.id)
+          console.log(completed)
+
+            
+            addMessage("Asesor", "El chat ha finalizado.\n Gracias por comunicarte con nosotros.\n Antes de salir, te invitamos a responder una breve encuesta para mejorar nuestro servicio", false, false);
+            addMessage("Asesor", "¿Quieres que te enviemos esta conversación a tu correo?", false, false);
+     
+            const content_chat = document.getElementById("chat-content");
+            if (content_chat) {
+              const optionsDiv_chat = document.createElement("div");
+              optionsDiv_chat.className = "mt-3 flex gap-3";
+
+              const yesBtn = document.createElement("button");
+              yesBtn.textContent = "✅ Sí, enviar";
+              yesBtn.className =
+                "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition";
+              yesBtn.onclick = async() => {
+                console.log("👉 Encuesta será enviada por correo");
+                 try {
+                    // Send survey data to API
+                    const responseAssistance = await fetch(chanet_conector_url + '/attention/' + messageNew.assistanceId + '/send-to-email' , {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': API_TOKEN,
+                      },
+                      body:  JSON.stringify({}),
+                    });
+
+               
+                    if (userCiudadano && userCiudadano.email) {
+                      addMessage("Asesor", "Acabamos de enviar el chat a su correo " + userData.email, false, false);
+                    } else {
+                      addMessage("Asesor", "Acabamos de enviar el chat a su correo registrado.", false, false);
+                    }
+
+                  } catch (error) {
+                    console.log('Error sending survey:', error);
+                  }
+
+                  optionsDiv_chat.remove();
+              };
+
+              const noBtn = document.createElement("button");
+              noBtn.textContent = "❌ No, gracias";
+              noBtn.className =
+                "px-4 py-2 bg-gray-300 text-gray-900 rounded-lg hover:bg-gray-400 transition";
+              noBtn.onclick = () => {
+               
+                optionsDiv_chat.remove();
+              };
+
+              optionsDiv_chat.appendChild(yesBtn);
+              optionsDiv_chat.appendChild(noBtn);
+              content_chat.appendChild(optionsDiv_chat);
+            }
+            
+            setTimeout(() => {
+                showSatisfactionSurvey();
+                
+            }, 10000);
+          
+      });
+
+}
 // Configurar socket secundario
 function setupSecondarySocket() {
   return new Promise((resolve) => {
@@ -431,45 +456,45 @@ function showEmailForm() {
     </div>
   `;
 
-  document.body.appendChild(emailFormContainer);
+  shadowRoot.appendChild(emailFormContainer);
 
   // Mostrar formulario con animación
   setTimeout(() => emailFormContainer.classList.add('scale-100'), 10);
 
   // Manejar cierre
-  const closeBtn = document.getElementById('close-email-form');
+  const closeBtn = shadowRoot.getElementById('close-email-form');
   closeBtn.addEventListener('click', () => {
     emailFormContainer.style.display = 'none';
-    document.getElementById('chat-open-btn').style.display = 'flex';
+    shadowRoot.getElementById('chat-open-btn').style.display = 'flex';
   });
 
   // Manejar envío del formulario
-  const form = document.getElementById('email-consultation-form');
+  const form = shadowRoot.getElementById('email-consultation-form');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     // Resetear errores
-    document.querySelectorAll('[id$="-error"]').forEach(el => el.classList.add('hidden'));
+    shadowRoot.querySelectorAll('[id$="-error"]').forEach(el => el.classList.add('hidden'));
 
     // Validar campos
-    const name = document.getElementById('email-name').value.trim();
-    const email = document.getElementById('email-address').value.trim();
-    const message = document.getElementById('email-message').value.trim();
+    const name = shadowRoot.getElementById('email-name').value.trim();
+    const email = shadowRoot.getElementById('email-address').value.trim();
+    const message = shadowRoot.getElementById('email-message').value.trim();
     let isValid = true;
 
     if (!name) {
-      document.getElementById('email-name-error').classList.remove('hidden');
-      document.getElementById('email-name').focus();
+      shadowRoot.getElementById('email-name-error').classList.remove('hidden');
+      shadowRoot.getElementById('email-name').focus();
       isValid = false;
     }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      document.getElementById('email-address-error').classList.remove('hidden');
-      if (isValid) document.getElementById('email-address').focus();
+      shadowRoot.getElementById('email-address-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('email-address').focus();
       isValid = false;
     }
     if (!message) {
-      document.getElementById('email-message-error').classList.remove('hidden');
-      if (isValid) document.getElementById('email-message').focus();
+      shadowRoot.getElementById('email-message-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('email-message').focus();
       isValid = false;
     }
 
@@ -499,7 +524,7 @@ function showEmailForm() {
         `;
         setTimeout(() => {
           emailFormContainer.style.display = 'none';
-          document.getElementById('chat-open-btn').style.display = 'flex';
+          shadowRoot.getElementById('chat-open-btn').style.display = 'flex';
         }, 3000);
       } else {
         throw new Error('Error al enviar la consulta');
@@ -513,7 +538,7 @@ function showEmailForm() {
       `;
       setTimeout(() => {
         emailFormContainer.style.display = 'none';
-        document.getElementById('chat-open-btn').style.display = 'flex';
+        shadowRoot.getElementById('chat-open-btn').style.display = 'flex';
       }, 3000);
     }
   });
@@ -523,6 +548,21 @@ function createChatWidget(key) {
   const room = key;
   // Guardar la sala/ID de chat globalmente para que otros flujos la usen
   window.currentRoom = room;
+
+  // Crear contenedor y shadow root solo una vez
+  let shadowHost = document.getElementById("mi-chat-shadow-host");
+  if (!shadowHost) {
+    shadowHost = document.createElement("div");
+    shadowHost.id = "mi-chat-shadow-host";
+    document.body.appendChild(shadowHost);
+  }
+  const shadowRoot = shadowHost.attachShadow({ mode: "open" });
+
+  // Inyectar CSS de forma aislada
+  const styleLink = document.createElement("link");
+  styleLink.rel = "stylesheet";
+  styleLink.href = `${window.__ENV.SOCKET_CHAT_ORIGIN}/styles.css`; // tu tailwind
+  shadowRoot.appendChild(styleLink);
 
   // Verificar si está en horario laboral
   if (isBusinessHours()) {
@@ -572,17 +612,17 @@ function createChatWidget(key) {
       </div>
     `;
 
-    document.body.appendChild(widget);
+    shadowRoot.appendChild(widget);
 
     // Inicializar formulario de registro
-    showRegistrationForm();
+    showRegistrationForm(shadowRoot);
 
     // Eventos de cierre
-    const closeBtn = document.getElementById('close-chat');
+    const closeBtn = shadowRoot.getElementById('close-chat');
     closeBtn.addEventListener('click', () => {
       //endChatSession();
-      document.getElementById('mi-chat-widget').style.display = 'none';
-      document.getElementById('chat-open-btn').style.display = 'flex';
+      shadowRoot.getElementById('mi-chat-widget').style.display = 'none';
+      shadowRoot.getElementById('chat-open-btn').style.display = 'flex';
       clearTimeout(inactivityTimer);
     });
 
@@ -602,8 +642,8 @@ function createChatWidget(key) {
   openBtn.onclick = () => {
     if (isBusinessHours()) {
       // Mostrar widget de chat
-      document.getElementById('mi-chat-widget').style.display = 'flex';
-      setTimeout(() => document.getElementById('mi-chat-widget').classList.add('scale-100'), 10);
+      shadowRoot.getElementById('mi-chat-widget').style.display = 'flex';
+      setTimeout(() => shadowRoot.getElementById('mi-chat-widget').classList.add('scale-100'), 10);
       startInactivityTimer();
     } else {
       // Mostrar formulario de consulta
@@ -611,20 +651,20 @@ function createChatWidget(key) {
     }
     openBtn.style.display = 'none';
   };
-  document.body.appendChild(openBtn);
+  shadowRoot.appendChild(openBtn);
 
   // Asegurar que el widget de chat o el formulario de correo estén inicialmente ocultos
-  if (document.getElementById('mi-chat-widget')) {
-    document.getElementById('mi-chat-widget').style.display = 'none';
+  if(shadowRoot.getElementById('mi-chat-widget')) {
+    shadowRoot.getElementById('mi-chat-widget').style.display = 'none';
   }
-  if (document.getElementById('email-form-widget')) {
-    document.getElementById('email-form-widget').style.display = 'none';
+  if(shadowRoot.getElementById('email-form-widget')) {
+    shadowRoot.getElementById('email-form-widget').style.display = 'none';
   }
 }
 
 // Mostrar formulario de registro
-function showRegistrationForm() {
-  const content = document.getElementById('chat-content');
+function showRegistrationForm(shadowRoot) {
+  const content = shadowRoot.getElementById('chat-content');
   content.innerHTML = `
     <div class="p-0">
       <div class="text-center mb-6">
@@ -674,82 +714,82 @@ function showRegistrationForm() {
     </div>
   `;
 
-  document.getElementById('registration-form').addEventListener('submit', (e) => {
+  shadowRoot.getElementById('registration-form').addEventListener('submit', (e) => {
     e.preventDefault();
     
     // Resetear mensajes de error
-    document.querySelectorAll('[id$="-error"]').forEach(el => el.classList.add('hidden'));
+    shadowRoot.querySelectorAll('[id$="-error"]').forEach(el => el.classList.add('hidden'));
     
     // Validar campos
-    const docType = document.getElementById('doc-type').value;
-    const docNumber = document.getElementById('doc-number').value.trim();
-    const names = document.getElementById('names').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const phone = document.getElementById('phone').value.trim();
+    const docType = shadowRoot.getElementById('doc-type').value;
+    const docNumber = shadowRoot.getElementById('doc-number').value.trim();
+    const names = shadowRoot.getElementById('names').value.trim();
+    const email = shadowRoot.getElementById('email').value.trim();
+    const phone = shadowRoot.getElementById('phone').value.trim();
     
     let isValid = true;
     
     // Validar tipo de documento
     if (!docType) {
-      document.getElementById('doc-type-error').classList.remove('hidden');
-      document.getElementById('doc-type').focus();
+      shadowRoot.getElementById('doc-type-error').classList.remove('hidden');
+      shadowRoot.getElementById('doc-type').focus();
       isValid = false;
     }
     
     // Validar número de documento según el tipo
     if (!docNumber) {
-      document.getElementById('doc-number-error').textContent = 'Este campo es obligatorio';
-      document.getElementById('doc-number-error').classList.remove('hidden');
-      if (isValid) document.getElementById('doc-number').focus();
+      shadowRoot.getElementById('doc-number-error').textContent = 'Este campo es obligatorio';
+      shadowRoot.getElementById('doc-number-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('doc-number').focus();
       isValid = false;
     } else if (docType === 'DNI' && (!/^[0-9]{8}$/.test(docNumber))) {
-      document.getElementById('doc-number-error').textContent = 'El DNI debe tener 8 dígitos';
-      document.getElementById('doc-number-error').classList.remove('hidden');
-      if (isValid) document.getElementById('doc-number').focus();
+      shadowRoot.getElementById('doc-number-error').textContent = 'El DNI debe tener 8 dígitos';
+      shadowRoot.getElementById('doc-number-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('doc-number').focus();
       isValid = false;
     } else if (docType === 'RUC' && !/^[0-9]{11}$/.test(docNumber)) {
-      document.getElementById('doc-number-error').textContent = 'El RUC debe tener 11 dígitos';
-      document.getElementById('doc-number-error').classList.remove('hidden');
-      if (isValid) document.getElementById('doc-number').focus();
+      shadowRoot.getElementById('doc-number-error').textContent = 'El RUC debe tener 11 dígitos';
+      shadowRoot.getElementById('doc-number-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('doc-number').focus();
       isValid = false;
     }
     
     // Validar nombres
     if (!names) {
-      document.getElementById('names-error').classList.remove('hidden');
-      if (isValid) document.getElementById('names').focus();
+      shadowRoot.getElementById('names-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('names').focus();
       isValid = false;
     } else if (names.length < 3) {
-      document.getElementById('names-error').textContent = 'El nombre debe tener al menos 3 caracteres';
-      document.getElementById('names-error').classList.remove('hidden');
-      if (isValid) document.getElementById('names').focus();
+      shadowRoot.getElementById('names-error').textContent = 'El nombre debe tener al menos 3 caracteres';
+      shadowRoot.getElementById('names-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('names').focus();
       isValid = false;
     }
     
     // Validar email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
-      document.getElementById('email-error').textContent = 'Este campo es obligatorio';
-      document.getElementById('email-error').classList.remove('hidden');
-      if (isValid) document.getElementById('email').focus();
+      shadowRoot.getElementById('email-error').textContent = 'Este campo es obligatorio';
+      shadowRoot.getElementById('email-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('email').focus();
       isValid = false;
     } else if (!emailRegex.test(email)) {
-      document.getElementById('email-error').textContent = 'Ingrese un correo electrónico válido';
-      document.getElementById('email-error').classList.remove('hidden');
-      if (isValid) document.getElementById('email').focus();
+      shadowRoot.getElementById('email-error').textContent = 'Ingrese un correo electrónico válido';
+      shadowRoot.getElementById('email-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('email').focus();
       isValid = false;
     }
     
     // Validar teléfono
     if (!phone) {
-      document.getElementById('phone-error').textContent = 'Este campo es obligatorio';
-      document.getElementById('phone-error').classList.remove('hidden');
-      if (isValid) document.getElementById('phone').focus();
+      shadowRoot.getElementById('phone-error').textContent = 'Este campo es obligatorio';
+      shadowRoot.getElementById('phone-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('phone').focus();
       isValid = false;
     } else if (!/^[0-9]{9}$/.test(phone)) {
-      document.getElementById('phone-error').textContent = 'Ingrese un número de celular válido (9 dígitos)';
-      document.getElementById('phone-error').classList.remove('hidden');
-      if (isValid) document.getElementById('phone').focus();
+      shadowRoot.getElementById('phone-error').textContent = 'Ingrese un número de celular válido (9 dígitos)';
+      shadowRoot.getElementById('phone-error').classList.remove('hidden');
+      if (isValid) shadowRoot.getElementById('phone').focus();
       isValid = false;
     }
     
@@ -779,13 +819,16 @@ function showRegistrationForm() {
         if (chatSocket && chatSocket.connected) {
           // Enviar datos de registro al servidor
           chatSocket.emit('registerUser', userData, (response) => {
+            console.log("afuer ps")
             // Esta función de callback se ejecutará cuando el servidor confirme la recepción
             if (response && response.success) {
               userCiudadano = response.citizen;
 
+              console.log("entro ps")
+
               API_TOKEN =   `Bearer ${response.citizen.accessToken}` ;
             
-              initializeSockets();
+               initializeSockets();
 
               showConfirmationCard();
             } else {
@@ -995,7 +1038,7 @@ async function showInitialMessages() {
 
     if (Array.isArray(messagesAutomatic)) {
       messagesAutomatic.forEach(msg => addMessage('Asesor', msg, false, false));
-      socketChanel.emit("chat.init");
+      //
     } else {
       addMessage('Asesor', messagesAutomatic.toString(), false, false);
     }
@@ -1025,33 +1068,29 @@ function addMessage(user, msg, isUser, file = false) {
     breaks: true,
     gfm: true,
     mangle: false,
-    headerIds: false,
-    sanitize: false, 
+    headerIds: false
   });
-  
-  const sanitizedHtml = DOMPurify.sanitize(htmlMsg);
+
+  const sanitizedHtml = DOMPurify.sanitize(htmlMsg, {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'code', 'pre', 'ul', 'ol', 'li', 'p', 'br'],
+    ALLOWED_ATTR: ['href', 'target', 'rel']
+  });
 
   if (sanitizedHtml) {
     const wrapper = document.createElement('div');
-    wrapper.className =
-      'text-sm leading-relaxed whitespace-pre-wrap break-words overflow-hidden overflow-wrap-anywhere';
+    wrapper.className = 'text-sm leading-relaxed whitespace-pre-wrap break-words overflow-hidden break-all';
     wrapper.innerHTML = sanitizedHtml;
 
-    // 🔗 Detectar y ajustar enlaces externos
-    const links = wrapper.querySelectorAll('a[href^="http"]');
-    links.forEach(link => {
+    // Ajustar enlaces
+    wrapper.querySelectorAll('a[href^="http"]').forEach(link => {
       link.setAttribute('target', '_blank');
       link.setAttribute('rel', 'noopener noreferrer');
-      link.classList.add(
-        'text-blue-600',
-        'underline',
-        'hover:text-blue-800',
-        'break-all'
-      );
+      link.classList.add('text-blue-600', 'underline', 'hover:text-blue-800', 'break-all');
     });
 
     innerDiv.appendChild(wrapper);
   }
+
 
   // Manejar archivo adjunto
   if (file && file.content) {
@@ -1104,7 +1143,7 @@ function addMessage(user, msg, isUser, file = false) {
   content.scrollTop = content.scrollHeight;
 
   // Guardar historial
-  chatHistory.push({ user, msg, file, time: timeSpan.textContent });
+ // chatHistory.push({ user, msg, file, time: timeSpan.textContent });
  //localStorage.setItem('chatHistory', JSON.stringify(chatHistory.slice(-100))); // Limitar historial
 }
 
@@ -1418,7 +1457,16 @@ function showSatisfactionSurvey() {
           openBtn.style.display = 'flex';
           userCiudadano = null;
         }
-        showRegistrationForm();
+        
+        if (socketChanel) {
+          socketChanel.disconnect();
+        }
+
+       messageNew.assistanceId= null;
+       messageNew.channelRoomId= null;
+       messageNew.citizenId= null;
+
+        showRegistrationForm(shadowRoot);
       }, 5000);
     } catch (error) {
       alert('Hubo un error al enviar la encuesta. Intente de nuevo.');
