@@ -82,14 +82,8 @@ function initializeSockets() {
             messageNew.citizenId = data.citizenId || null;
             console.log(data.assistanceId);
               initializeSocketsChanel(data.assistanceId);
-
-          
           }
-
-          
         }
-
-      
       });
 
       // Manejar conexión del socket principal
@@ -268,13 +262,7 @@ function initializeSocketsChanel(assistanceId){
       });
 
       socketChanel.on("chat.status.completed", (completed) => {
-          console.log("chat finalizado",completed)
-          console.log("chat",messageNew)
-          console.log("chat citizenId",messageNew.citizenId)
-          console.log("chat userCiudadano",userCiudadano.id)
-          console.log(completed)
-
-            
+      
             addMessage("Asesor", "El chat ha finalizado.\n Gracias por comunicarte con nosotros.\n Antes de salir, te invitamos a responder una breve encuesta para mejorar nuestro servicio", false, false);
             addMessage("Asesor", "¿Quieres que te enviemos esta conversación a tu correo?", false, false);
      
@@ -456,45 +444,45 @@ function showEmailForm() {
     </div>
   `;
 
-  shadowRoot.appendChild(emailFormContainer);
+  document.body.appendChild(emailFormContainer);
 
   // Mostrar formulario con animación
   setTimeout(() => emailFormContainer.classList.add('scale-100'), 10);
 
   // Manejar cierre
-  const closeBtn = shadowRoot.getElementById('close-email-form');
+  const closeBtn = document.getElementById('close-email-form');
   closeBtn.addEventListener('click', () => {
     emailFormContainer.style.display = 'none';
-    shadowRoot.getElementById('chat-open-btn').style.display = 'flex';
+    document.getElementById('chat-open-btn').style.display = 'flex';
   });
 
   // Manejar envío del formulario
-  const form = shadowRoot.getElementById('email-consultation-form');
+  const form = document.getElementById('email-consultation-form');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     // Resetear errores
-    shadowRoot.querySelectorAll('[id$="-error"]').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('[id$="-error"]').forEach(el => el.classList.add('hidden'));
 
     // Validar campos
-    const name = shadowRoot.getElementById('email-name').value.trim();
-    const email = shadowRoot.getElementById('email-address').value.trim();
-    const message = shadowRoot.getElementById('email-message').value.trim();
+    const name = document.getElementById('email-name').value.trim();
+    const email = document.getElementById('email-address').value.trim();
+    const message = document.getElementById('email-message').value.trim();
     let isValid = true;
 
     if (!name) {
-      shadowRoot.getElementById('email-name-error').classList.remove('hidden');
-      shadowRoot.getElementById('email-name').focus();
+      document.getElementById('email-name-error').classList.remove('hidden');
+      document.getElementById('email-name').focus();
       isValid = false;
     }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      shadowRoot.getElementById('email-address-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('email-address').focus();
+      document.getElementById('email-address-error').classList.remove('hidden');
+      if (isValid) document.getElementById('email-address').focus();
       isValid = false;
     }
     if (!message) {
-      shadowRoot.getElementById('email-message-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('email-message').focus();
+      document.getElementById('email-message-error').classList.remove('hidden');
+      if (isValid) document.getElementById('email-message').focus();
       isValid = false;
     }
 
@@ -524,7 +512,7 @@ function showEmailForm() {
         `;
         setTimeout(() => {
           emailFormContainer.style.display = 'none';
-          shadowRoot.getElementById('chat-open-btn').style.display = 'flex';
+          document.getElementById('chat-open-btn').style.display = 'flex';
         }, 3000);
       } else {
         throw new Error('Error al enviar la consulta');
@@ -538,7 +526,7 @@ function showEmailForm() {
       `;
       setTimeout(() => {
         emailFormContainer.style.display = 'none';
-        shadowRoot.getElementById('chat-open-btn').style.display = 'flex';
+        document.getElementById('chat-open-btn').style.display = 'flex';
       }, 3000);
     }
   });
@@ -548,21 +536,6 @@ function createChatWidget(key) {
   const room = key;
   // Guardar la sala/ID de chat globalmente para que otros flujos la usen
   window.currentRoom = room;
-
-  // Crear contenedor y shadow root solo una vez
-  let shadowHost = document.getElementById("mi-chat-shadow-host");
-  if (!shadowHost) {
-    shadowHost = document.createElement("div");
-    shadowHost.id = "mi-chat-shadow-host";
-    document.body.appendChild(shadowHost);
-  }
-  const shadowRoot = shadowHost.attachShadow({ mode: "open" });
-
-  // Inyectar CSS de forma aislada
-  const styleLink = document.createElement("link");
-  styleLink.rel = "stylesheet";
-  styleLink.href = `${window.__ENV.SOCKET_CHAT_ORIGIN}/styles.css`; // tu tailwind
-  shadowRoot.appendChild(styleLink);
 
   // Verificar si está en horario laboral
   if (isBusinessHours()) {
@@ -612,17 +585,17 @@ function createChatWidget(key) {
       </div>
     `;
 
-    shadowRoot.appendChild(widget);
+    document.body.appendChild(widget);
 
     // Inicializar formulario de registro
-    showRegistrationForm(shadowRoot);
+    showRegistrationForm();
 
     // Eventos de cierre
-    const closeBtn = shadowRoot.getElementById('close-chat');
+    const closeBtn = document.getElementById('close-chat');
     closeBtn.addEventListener('click', () => {
       //endChatSession();
-      shadowRoot.getElementById('mi-chat-widget').style.display = 'none';
-      shadowRoot.getElementById('chat-open-btn').style.display = 'flex';
+      document.getElementById('mi-chat-widget').style.display = 'none';
+      document.getElementById('chat-open-btn').style.display = 'flex';
       clearTimeout(inactivityTimer);
     });
 
@@ -642,8 +615,8 @@ function createChatWidget(key) {
   openBtn.onclick = () => {
     if (isBusinessHours()) {
       // Mostrar widget de chat
-      shadowRoot.getElementById('mi-chat-widget').style.display = 'flex';
-      setTimeout(() => shadowRoot.getElementById('mi-chat-widget').classList.add('scale-100'), 10);
+      document.getElementById('mi-chat-widget').style.display = 'flex';
+      setTimeout(() => document.getElementById('mi-chat-widget').classList.add('scale-100'), 10);
       startInactivityTimer();
     } else {
       // Mostrar formulario de consulta
@@ -651,20 +624,20 @@ function createChatWidget(key) {
     }
     openBtn.style.display = 'none';
   };
-  shadowRoot.appendChild(openBtn);
+  document.body.appendChild(openBtn);
 
   // Asegurar que el widget de chat o el formulario de correo estén inicialmente ocultos
-  if(shadowRoot.getElementById('mi-chat-widget')) {
-    shadowRoot.getElementById('mi-chat-widget').style.display = 'none';
+  if (document.getElementById('mi-chat-widget')) {
+    document.getElementById('mi-chat-widget').style.display = 'none';
   }
-  if(shadowRoot.getElementById('email-form-widget')) {
-    shadowRoot.getElementById('email-form-widget').style.display = 'none';
+  if (document.getElementById('email-form-widget')) {
+    document.getElementById('email-form-widget').style.display = 'none';
   }
 }
 
 // Mostrar formulario de registro
-function showRegistrationForm(shadowRoot) {
-  const content = shadowRoot.getElementById('chat-content');
+function showRegistrationForm() {
+  const content = document.getElementById('chat-content');
   content.innerHTML = `
     <div class="p-0">
       <div class="text-center mb-6">
@@ -714,82 +687,82 @@ function showRegistrationForm(shadowRoot) {
     </div>
   `;
 
-  shadowRoot.getElementById('registration-form').addEventListener('submit', (e) => {
+  document.getElementById('registration-form').addEventListener('submit', (e) => {
     e.preventDefault();
     
     // Resetear mensajes de error
-    shadowRoot.querySelectorAll('[id$="-error"]').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('[id$="-error"]').forEach(el => el.classList.add('hidden'));
     
     // Validar campos
-    const docType = shadowRoot.getElementById('doc-type').value;
-    const docNumber = shadowRoot.getElementById('doc-number').value.trim();
-    const names = shadowRoot.getElementById('names').value.trim();
-    const email = shadowRoot.getElementById('email').value.trim();
-    const phone = shadowRoot.getElementById('phone').value.trim();
+    const docType = document.getElementById('doc-type').value;
+    const docNumber = document.getElementById('doc-number').value.trim();
+    const names = document.getElementById('names').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone').value.trim();
     
     let isValid = true;
     
     // Validar tipo de documento
     if (!docType) {
-      shadowRoot.getElementById('doc-type-error').classList.remove('hidden');
-      shadowRoot.getElementById('doc-type').focus();
+      document.getElementById('doc-type-error').classList.remove('hidden');
+      document.getElementById('doc-type').focus();
       isValid = false;
     }
     
     // Validar número de documento según el tipo
     if (!docNumber) {
-      shadowRoot.getElementById('doc-number-error').textContent = 'Este campo es obligatorio';
-      shadowRoot.getElementById('doc-number-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('doc-number').focus();
+      document.getElementById('doc-number-error').textContent = 'Este campo es obligatorio';
+      document.getElementById('doc-number-error').classList.remove('hidden');
+      if (isValid) document.getElementById('doc-number').focus();
       isValid = false;
     } else if (docType === 'DNI' && (!/^[0-9]{8}$/.test(docNumber))) {
-      shadowRoot.getElementById('doc-number-error').textContent = 'El DNI debe tener 8 dígitos';
-      shadowRoot.getElementById('doc-number-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('doc-number').focus();
+      document.getElementById('doc-number-error').textContent = 'El DNI debe tener 8 dígitos';
+      document.getElementById('doc-number-error').classList.remove('hidden');
+      if (isValid) document.getElementById('doc-number').focus();
       isValid = false;
     } else if (docType === 'RUC' && !/^[0-9]{11}$/.test(docNumber)) {
-      shadowRoot.getElementById('doc-number-error').textContent = 'El RUC debe tener 11 dígitos';
-      shadowRoot.getElementById('doc-number-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('doc-number').focus();
+      document.getElementById('doc-number-error').textContent = 'El RUC debe tener 11 dígitos';
+      document.getElementById('doc-number-error').classList.remove('hidden');
+      if (isValid) document.getElementById('doc-number').focus();
       isValid = false;
     }
     
     // Validar nombres
     if (!names) {
-      shadowRoot.getElementById('names-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('names').focus();
+      document.getElementById('names-error').classList.remove('hidden');
+      if (isValid) document.getElementById('names').focus();
       isValid = false;
     } else if (names.length < 3) {
-      shadowRoot.getElementById('names-error').textContent = 'El nombre debe tener al menos 3 caracteres';
-      shadowRoot.getElementById('names-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('names').focus();
+      document.getElementById('names-error').textContent = 'El nombre debe tener al menos 3 caracteres';
+      document.getElementById('names-error').classList.remove('hidden');
+      if (isValid) document.getElementById('names').focus();
       isValid = false;
     }
     
     // Validar email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
-      shadowRoot.getElementById('email-error').textContent = 'Este campo es obligatorio';
-      shadowRoot.getElementById('email-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('email').focus();
+      document.getElementById('email-error').textContent = 'Este campo es obligatorio';
+      document.getElementById('email-error').classList.remove('hidden');
+      if (isValid) document.getElementById('email').focus();
       isValid = false;
     } else if (!emailRegex.test(email)) {
-      shadowRoot.getElementById('email-error').textContent = 'Ingrese un correo electrónico válido';
-      shadowRoot.getElementById('email-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('email').focus();
+      document.getElementById('email-error').textContent = 'Ingrese un correo electrónico válido';
+      document.getElementById('email-error').classList.remove('hidden');
+      if (isValid) document.getElementById('email').focus();
       isValid = false;
     }
     
     // Validar teléfono
     if (!phone) {
-      shadowRoot.getElementById('phone-error').textContent = 'Este campo es obligatorio';
-      shadowRoot.getElementById('phone-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('phone').focus();
+      document.getElementById('phone-error').textContent = 'Este campo es obligatorio';
+      document.getElementById('phone-error').classList.remove('hidden');
+      if (isValid) document.getElementById('phone').focus();
       isValid = false;
     } else if (!/^[0-9]{9}$/.test(phone)) {
-      shadowRoot.getElementById('phone-error').textContent = 'Ingrese un número de celular válido (9 dígitos)';
-      shadowRoot.getElementById('phone-error').classList.remove('hidden');
-      if (isValid) shadowRoot.getElementById('phone').focus();
+      document.getElementById('phone-error').textContent = 'Ingrese un número de celular válido (9 dígitos)';
+      document.getElementById('phone-error').classList.remove('hidden');
+      if (isValid) document.getElementById('phone').focus();
       isValid = false;
     }
     
@@ -819,12 +792,9 @@ function showRegistrationForm(shadowRoot) {
         if (chatSocket && chatSocket.connected) {
           // Enviar datos de registro al servidor
           chatSocket.emit('registerUser', userData, (response) => {
-            console.log("afuer ps")
             // Esta función de callback se ejecutará cuando el servidor confirme la recepción
             if (response && response.success) {
               userCiudadano = response.citizen;
-
-              console.log("entro ps")
 
               API_TOKEN =   `Bearer ${response.citizen.accessToken}` ;
             
@@ -1457,16 +1427,7 @@ function showSatisfactionSurvey() {
           openBtn.style.display = 'flex';
           userCiudadano = null;
         }
-        
-        if (socketChanel) {
-          socketChanel.disconnect();
-        }
-
-       messageNew.assistanceId= null;
-       messageNew.channelRoomId= null;
-       messageNew.citizenId= null;
-
-        showRegistrationForm(shadowRoot);
+        showRegistrationForm();
       }, 5000);
     } catch (error) {
       alert('Hubo un error al enviar la encuesta. Intente de nuevo.');
